@@ -13,6 +13,12 @@ def clean_clients(a):
     printerr("Clients cleaned.")
 
 
+def client_index(s):
+    for i in range(len(clients)):
+        if clients[i] is not None and clients[i][0] == s:
+            return i
+
+
 def printerr(text):
     print(text, file=sys.stderr)
 
@@ -20,14 +26,20 @@ def printerr(text):
 def return_clients(a):
     out = ""
     for i in range(len(a)):
-        out += str(i) + " : " + str(a[i])
+        if a[i] is not None:
+            out += str(i) + " : " + str(a[i][1]) + " - " + str(a[i][0].getpeername())
+        else:
+            out += str(i) + " : None"
     return out
 
 
 def print_clients(a):
     printerr("Clients :")
     for i in range(len(a)):
-        printerr(str(i) + " : " + str(a[i]))
+        if a[i] is not None:
+            printerr(str(i) + " : " + str(a[i][1]) + " - " + str(a[i][0].getpeername()))
+        else:
+            printerr(str(i) + " : None")
 
 
 def send_string(con, str):
@@ -42,7 +54,6 @@ def connection_life(con, client_addr):
         # Receive the data in small chunks and retransmit it
         while True:
             data = con.recv(RECV_LENGTH)
-            data_str = ""
             if data:
                 data_str = data.decode("ascii")
                 printerr('received "%s" from client' % data_str)
@@ -61,7 +72,7 @@ def connection_life(con, client_addr):
                         tmp_data = ""
             else:
                 print('closing connection with', client_addr[0])
-                index = clients.index(con)
+                index = client_index(con)
                 clients[index] = None
                 break
 
@@ -81,7 +92,13 @@ while True:
     print('Waiting for a connection')
     connection, client_address = sock.accept()
     t = threading.Thread(target=connection_life, args=(connection, client_address))
-    clients.append(connection)
+    if len(clients) % 2 == 0:
+        tag = "CARS"
+    else:
+        tag = "DOGS"
+    endpoint = (connection, tag)
+    # clients.append(connection)
+    clients.append(endpoint)
     t.start()
     time.sleep(0.2)
     print_clients(clients)
