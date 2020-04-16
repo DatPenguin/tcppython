@@ -42,8 +42,27 @@ def print_clients(a):
             printerr(str(i) + " : None")
 
 
-def send_string(con, str):
-    con.sendall(str.encode("ascii"))
+def send_string(con, msg):
+    con.sendall(msg.encode("ascii"))
+
+
+def send_to_tag(msg, l_tag):
+    for i in range(len(clients)):
+        if clients[i] is not None and clients[i][1] == l_tag:
+            send_string(clients[i][0], msg)
+
+
+def send_to_first_tag(msg, l_tag):
+    for i in range(len(clients)):
+        if clients[i] is not None and clients[i][1] == l_tag:
+            send_string(clients[i][0], msg)
+            return
+
+
+def client_tag(con):
+    for i in range(len(clients)):
+        if clients[i] is not None and clients[i][0] == con:
+            return clients[i][1]
 
 
 def connection_life(con, client_addr):
@@ -56,12 +75,17 @@ def connection_life(con, client_addr):
             data = con.recv(RECV_LENGTH)
             if data:
                 data_str = data.decode("ascii")
-                printerr('received "%s" from client' % data_str)
+                printerr("received " + data_str + " from client " + str(client_index(con)))
                 if data_str == "clean":
                     clean_clients(clients)
                     print_clients(clients)
                 elif data_str == "list":
                     send_string(con, return_clients(clients))
+                elif data_str == "tag":
+                    send_string(con, client_tag(con))
+                elif data_str == "ouaf":
+                    send_to_tag("ouaf ouaf !", "DOGS")
+                    send_to_first_tag("OUEF ALORS", "DOGS")
                 else:
                     tmp_data += data_str
                     # Bricolage : ne fonctionne pas si la taille du paquet est un multiple de RECV_LENGTH
@@ -84,7 +108,7 @@ def connection_life(con, client_addr):
 clients = []
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_address = ('localhost', 43000)
-print('starting up on %s port %s' % server_address, file=sys.stderr)
+printerr("starting up on " + server_address[0] + " port " + str(server_address[1]))
 sock.bind(server_address)
 sock.listen(1)
 
@@ -97,8 +121,8 @@ while True:
     else:
         tag = "DOGS"
     endpoint = (connection, tag)
-    # clients.append(connection)
     clients.append(endpoint)
     t.start()
     time.sleep(0.2)
     print_clients(clients)
+    send_string(connection, tag)
