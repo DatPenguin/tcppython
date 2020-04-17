@@ -65,6 +65,33 @@ def client_tag(con):
             return clients[i][1]
 
 
+def assign_type(con):
+    if client_index(con) % 2 == 0:
+        return "CARS"
+    else:
+        return "DOGS"
+
+
+def hello(con):
+    client_type = assign_type(con)
+    send_string(con, client_type)
+    clients[client_index(con)][1] = client_type
+
+
+def ping(con):
+    send_string(con, "PONG")
+
+
+def img(data):
+    img_tag = data.split(",")[1]
+    img_data = data.split(",")[2]
+    send_to_tag(img_data, img_tag)
+
+
+def stop(con):
+    send_string(con, "ACK")
+
+
 def connection_life(con, client_addr):
     tmp_data = ""
     try:
@@ -83,9 +110,14 @@ def connection_life(con, client_addr):
                     send_string(con, return_clients(clients))
                 elif data_str == "tag":
                     send_string(con, client_tag(con))
-                elif data_str == "ouaf":
-                    send_to_tag("ouaf ouaf !", "DOGS")
-                    send_to_first_tag("OUEF ALORS", "DOGS")
+                elif str.startswith(data_str, "HELLO"):
+                    hello(con)
+                elif str.startswith(data_str, "PING"):
+                    ping(con)
+                elif str.startswith(data_str, "STOP"):
+                    stop(con)
+                elif str.startswith(data_str, "IMG"):
+                    img(data_str)
                 else:
                     tmp_data += data_str
                     # Bricolage : ne fonctionne pas si la taille du paquet est un multiple de RECV_LENGTH
@@ -116,12 +148,9 @@ while True:
     print('Waiting for a connection')
     connection, client_address = sock.accept()
     t = threading.Thread(target=connection_life, args=(connection, client_address))
-    if len(clients) % 2 == 0:
-        tag = "CARS"
-    else:
-        tag = "DOGS"
+    tag = "NOTAG"
     endpoint = (connection, tag)
-    clients.append(endpoint)
+    clients.append(list(endpoint))
     t.start()
     time.sleep(0.2)
     print_clients(clients)
